@@ -1,40 +1,36 @@
-# Stage 1: Install dependencies
+# Stage 1: Download and cache dependencies
 FROM golang:1.24-alpine AS deps
-RUN apk add --no-cache libc6-compat git
+RUN apk add --no-cache git
 WORKDIR /app
-# Copy manifest
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Stage 2: Builder
-FROM golang:1.24-alpine AS builder
-WORKDIR /app
-COPY --from=deps /go/pkg /go/pkg
+# Stage 2: Run tests (used by docker compose test)
+FROM deps AS test
 COPY . .
-# Build-time Arguments
-ARG APP_VERSION=1.0.0
-ENV CGO_ENABLED=0
-ENV GOOS=linux
-# Compile binary
+RUN go vet ./...
+CMD ["go", "test", "./...", "-v", "-count=1"]
+
+# Stage 3: Compile the production binary
+FROM deps AS builder
+WORKDIR /app
+COPY . .
+ARG APP_VERSION=dev
+ENV CGO_ENABLED=0 GOOS=linux
 RUN go build -ldflags="-s -w -X main.Version=${APP_VERSION}" -o main .
 
-# Stage 3: Runner
+# Stage 4: Minimal runtime image
 FROM alpine:3.19 AS runner
 WORKDIR /app
-#metadata
-LABEL author="VAXA STUDIO"
-LABEL project="Go Distributed Limiter"
-# Create non-root user
+LABEL org.opencontainers.image.title="Go Distributed Rate Limiter"
+LABEL org.opencontainers.image.source="https://github.com/sha-wrks/Go-Limiter"
+LABEL org.opencontainers.image.licenses="MIT"
 RUN addgroup --system --gid 1001 gopher && \
-    adduser --system --uid 1001 gopher
+    adduser  --system --uid 1001 gopher
 COPY --from=builder --chown=gopher:gopher /app/main ./
-# Set Environment Variables
-ENV APP_ENV=production
-ENV REDIS_ADDR=redis:6379
-# Use non-root user to run our application
+ENV APP_ENV=production \
+    REDIS_ADDR=redis:6379 \
+    PORT=8080
 USER gopher
 EXPOSE 8080
-ENV PORT 8080
-
-# Run the binary
 CMD ["./main"]

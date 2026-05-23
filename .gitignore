@@ -1,32 +1,34 @@
-# Binaries for programs and plugins
+# ── Go binaries & build artifacts ────────────────────────────────────────────
 main
+bin/
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
 
-# Test binary, built with `go test -c`
+CLAUDE.md
+
+# Test binaries and coverage
 *.test
-
-# Output of the go coverage tool, produced by `go test -coverprofile`
 *.out
+coverage.out
+coverage.html
 
-# Dependency directories (GOPATH caching is preferred over vendor/)
+# Dependency directories
 vendor/
 
+# Temporary directories
+tmp/
 
-# --- C++ / Build Artifacts ---
+# ── C / C++ artifacts ────────────────────────────────────────────────────────
 *.o
 *.obj
 *.a
 *.lib
 *.db
-kv_engine
-super-kv
 
-
-# --- Docker & Environment ---
+# ── Docker & environment ──────────────────────────────────────────────────────
 .env
 .env.local
 .env.*.local
@@ -35,9 +37,8 @@ super-kv
 *.log
 docker-compose.override.yml
 
-
-# --- IDE & System Garbage ---
-# JetBrains (GoLand, CLion)
+# ── IDE & editor files ────────────────────────────────────────────────────────
+# JetBrains (GoLand, CLion, IntelliJ)
 .idea/
 
 # VS Code
@@ -48,15 +49,15 @@ docker-compose.override.yml
 !.vscode/extensions.json
 *.code-workspace
 
-# Windows garbage
+# ── OS garbage ────────────────────────────────────────────────────────────────
+# Windows
 Thumbs.db
 desktop.ini
 
-# Linux/Mac garbage
+# macOS
 .DS_Store
+__MACOSX/
 
-
-# --- Temporary / Crash Reports ---
-core
+# ── Profiling ─────────────────────────────────────────────────────────────────
 *.prof
 *.pprof

@@ -5,20 +5,27 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"go-limiter/limiter"
+
 	"github.com/redis/go-redis/v9"
 )
 
+// Version is set at build time via -ldflags "-X main.Version=<tag>".
+var Version = "dev"
+
 func main() {
+	log.Printf("go-limiter version %s starting", Version)
+
+	redisAddr := envOrDefault("REDIS_ADDR", "localhost:6379")
+	port := envOrDefault("PORT", "8080")
+	rateLimit := envInt("RATE_LIMIT", 5)
+	rateWindow := envDuration("RATE_LIMIT_WINDOW", 30*time.Second)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
-	redisAddr := os.Getenv("REDIS_ADDR")
-	if redisAddr == "" {
-		redisAddr = "localhost:6379"
-	}
 
 	rdb := redis.NewClient(&redis.Options{
 		Addr:         redisAddr,
@@ -29,9 +36,10 @@ func main() {
 	})
 
 	if err := rdb.Ping(ctx).Err(); err != nil {
-		log.Fatalf("Fatal: Failed to connect to Redis at %s: %v", redisAddr, err)
+		log.Fatalf("Fatal: failed to connect to Redis at %s: %v", redisAddr, err)
 	}
-	log.Printf("Successfully connected to Redis at %s", redisAddr)
+	log.Printf("Connected to Redis at %s", redisAddr)
+	log.Printf("Rate limit: %d requests per %s", rateLimit, rateWindow)
 
 	rl := limiter.NewRateLimiter(rdb)
 
@@ -40,12 +48,11 @@ func main() {
 		w.Write([]byte("Request processed successfully.\n"))
 	}
 
-	http.HandleFunc("/data", rl.Middleware(5, 30*time.Second, helloHandler))
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
+	http.HandleFunc("/data", rl.Middleware(rateLimit, rateWindow, helloHandler))
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok\n"))
+	})
 
 	server := &http.Server{
 		Addr:         ":" + port,
@@ -54,9 +61,33 @@ func main() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	log.Printf("Server is starting on port %s...", port)
-	
+	log.Printf("Server listening on :%s", port)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("Server failed: %v", err)
 	}
+}
+
+func envOrDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
+func envInt(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return n
+		}
+	}
+	return fallback
+}
+
+func envDuration(key string, fallback time.Duration) time.Duration {
+	if v := os.Getenv(key); v != "" {
+		if d, err := time.ParseDuration(v); err == nil && d > 0 {
+			return d
+		}
+	}
+	return fallback
 }
