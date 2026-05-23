@@ -7,8 +7,6 @@ bin/
 *.so
 *.dylib
 
-CLAUDE.md
-
 # Test binaries and coverage
 *.test
 *.out

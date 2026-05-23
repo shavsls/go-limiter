@@ -1,4 +1,6 @@
-# Go Distributed Rate Limiter
+<div align="center">
+
+<h1>Go Distributed Rate Limiter</h1>
 
 [![CI](https://github.com/sha-wrks/Go-Limiter/actions/workflows/ci.yml/badge.svg)](https://github.com/sha-wrks/Go-Limiter/actions/workflows/ci.yml)
 [![Go Version](https://img.shields.io/badge/go-1.24-00ADD8?logo=go)](go.mod)
@@ -6,6 +8,8 @@
 [![Docker](https://img.shields.io/badge/docker-compose-2496ED?logo=docker)](docker-compose.yml)
 
 A production-ready distributed rate-limiting middleware written in Go 1.24. Uses atomic Lua scripts on Redis to enforce per-client request limits across multiple application instances without race conditions.
+
+</div>
 
 ---
 
